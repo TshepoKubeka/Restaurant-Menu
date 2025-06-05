@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Restaurant Menu</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .luxury-bg {
+      background-color: #0a0a0a;
+    }
+    .luxury-text {
+      color: #d4af37;
+    }
+    .cart-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: #111;
+      color: #d4af37;
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 50;
+    }
+    .menu-img {
+      max-height: 150px;
+      width: auto;
+      object-fit: cover;
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+  </style>
+</head>
+<body class="luxury-bg text-white font-sans p-4 md:p-10 pb-32">
+
+  <header class="flex items-center justify-between mb-6 sticky top-0 bg-black z-10 luxury-text">
+    <div class="text-2xl font-bold tracking-tight">Tasha’s Reserve</div>
+  </header>
+    <section class="bg-black text-yellow-400 p-4 rounded mb-4">
+  <h1 class="text-2xl font-bold mb-2">Welcome to Tasha’s Reserve</h1>
+  <p class="text-sm text-gray-300">
+    Nestled in the heart of Hillcrest, Durban – Tasha’s Reserve brings you a refined dining experience with a luxurious touch. Browse our curated menu and place your order directly through WhatsApp. We’ll confirm your order and provide collection details.
+  </p>
+  <p class="text-sm text-yellow-500 mt-2">We’re open: Tue–Sun, 11am–9pm | WhatsApp orders only</p>
+</section>
+
+
+  <ul class="flex gap-4 border-b border-yellow-600 pb-2 luxury-text sticky top-[60px] bg-black z-10">
+    <li><a href="#starters" class="font-medium hover:text-yellow-300">Starters</a></li>
+    <li><a href="#mains" class="font-medium hover:text-yellow-300">Mains</a></li>
+    <li><a href="#desserts" class="font-medium hover:text-yellow-300">Desserts</a></li>
+    <li><a href="#drinks" class="font-medium hover:text-yellow-300">Drinks</a></li>
+  </ul>
+
+  <div id="menu"></div>
+
+  <!-- Order Cart Fixed Bar -->
+  <div class="cart-bar" id="cart">
+    <div>
+      <span id="cart-items"></span>
+      <strong>Total: R<span id="cart-total">0</span></strong>
+    </div>
+    <a id="confirm-link" href="#" onclick="openConfirmPage()" class="bg-yellow-600 text-black px-4 py-2 rounded hover:bg-yellow-500" style="display: none;">Confirm Order</a>
+  </div>
+
+  <!-- Confirm Page Modal -->
+  <div id="confirm-modal" class="fixed inset-0 bg-black bg-opacity-90 z-50 p-6 overflow-y-auto hidden">
+    <h2 class="text-xl luxury-text mb-4">Confirm Your Order</h2>
+    <ul id="confirm-list" class="mb-4"></ul>
+    <div class="flex justify-between items-center">
+      <strong class="luxury-text">Total: R<span id="confirm-total">0</span></strong>
+      <a id="whatsapp-link" href="#" target="_blank" class="bg-yellow-600 text-black px-4 py-2 rounded hover:bg-yellow-500">Order via WhatsApp</a>
+    </div>
+    <button onclick="closeConfirmPage()" class="mt-4 text-yellow-400 underline">Go Back</button>
+  </div>
+
+  <script>
+    const menuData = {
+      Starters: [
+        { name: "Burrata Salad", description: "Creamy burrata, cherry tomatoes, balsamic glaze", price: 120, image: "images/burrata.jpg" },
+        { name: "Truffle Arancini", description: "Crispy risotto balls, parmesan, truffle aioli", price: 135, image: "images/arancini.jpg" },
+      ],
+      Mains: [
+        { name: "Beef Fillet", description: "Grilled beef fillet with truffle mash", price: 250, image: "images/beef-fillet.jpg" },
+        { name: "Lobster Ravioli", description: "Homemade pasta, rich lobster bisque", price: 230, image: "images/lobster-ravioli.jpg" },
+      ],
+      Desserts: [
+        { name: "Chocolate Fondant", description: "Molten chocolate cake with vanilla ice cream", price: 90, image: "images/fondant.jpg" },
+      ],
+      Drinks: [
+        { name: "Chardonnay", description: "Premium white wine glass", price: 70, image: "images/chardonnay.jpg" },
+      ]
+    };
+
+    function buildMenu() {
+      const menuContainer = document.getElementById("menu");
+      for (let section in menuData) {
+        const sectionId = section.toLowerCase();
+        const sectionDiv = document.createElement("div");
+        sectionDiv.id = sectionId;
+        sectionDiv.className = "mt-6";
+        sectionDiv.innerHTML = `<h2 class="text-xl font-bold luxury-text mb-2">${section}</h2>`;
+
+        menuData[section].forEach(item => {
+          const itemDiv = document.createElement("div");
+          itemDiv.className = "mb-6";
+          itemDiv.innerHTML = `
+            <img src="${item.image}" alt="${item.name}" class="menu-img">
+            <p><strong>${item.name}</strong><br><span class='text-sm text-gray-400'>(${item.description})</span> - R${item.price}</p>
+            <button onclick="addToOrder('${item.name}', ${item.price})" class="bg-yellow-600 text-black px-3 py-1 rounded mt-1">Add to Order</button>
+          `;
+          sectionDiv.appendChild(itemDiv);
+        });
+
+        menuContainer.appendChild(sectionDiv);
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", buildMenu);
+
+    let order = [];
+
+    function addToOrder(item, price) {
+      const existing = order.find(i => i.item === item);
+      if (existing) {
+        existing.quantity++;
+      } else {
+        order.push({ item, price, quantity: 1 });
+      }
+      updateCart();
+    }
+
+    function removeFromOrder(item) {
+      const index = order.findIndex(i => i.item === item);
+      if (index !== -1) {
+        if (order[index].quantity > 1) {
+          order[index].quantity--;
+        } else {
+          order.splice(index, 1);
+        }
+      }
+      updateCart();
+      updateConfirmPage();
+    }
+
+    function incrementItem(item) {
+      const existing = order.find(i => i.item === item);
+      if (existing) {
+        existing.quantity++;
+        updateCart();
+        updateConfirmPage();
+      }
+    }
+
+    function updateCart() {
+      const total = order.reduce((sum, i) => sum + i.price * i.quantity, 0);
+      const itemsText = order.map(i => `${i.quantity}x ${i.item}`).join(', ');
+      document.getElementById('cart-items').innerText = itemsText;
+      document.getElementById('cart-total').innerText = total;
+      const link = document.getElementById('confirm-link');
+      link.style.display = order.length > 0 ? 'inline-block' : 'none';
+    }
+
+    function openConfirmPage() {
+      updateConfirmPage();
+      document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmPage() {
+      document.getElementById('confirm-modal').classList.add('hidden');
+    }
+
+    function updateConfirmPage() {
+      const list = document.getElementById('confirm-list');
+      list.innerHTML = '';
+      order.forEach(i => {
+        const li = document.createElement('li');
+        li.innerHTML = `<div class='flex items-center justify-between'><span class='luxury-text'>${i.item}</span> <div class='flex items-center gap-2'><button onclick="removeFromOrder('${i.item}')" class="bg-red-600 px-2 rounded">-</button><span>${i.quantity}</span><button onclick="incrementItem('${i.item}')" class="bg-green-600 px-2 rounded">+</button><span class='ml-4'>R${i.price * i.quantity}</span></div></div>`;
+        list.appendChild(li);
+      });
+      const total = order.reduce((sum, i) => sum + i.price * i.quantity, 0);
+      document.getElementById('confirm-total').innerText = total;
+      const message = encodeURIComponent(`I'd like to order:
+${order.map(i => `${i.quantity}x ${i.item} - R${i.price * i.quantity}`).join('\n')}
+Total: R${total}`);
+      document.getElementById('whatsapp-link').href = `https://wa.me/27687719812?text=${message}`;
+    }
+  </script>
+
+</body>
+</html>
+
